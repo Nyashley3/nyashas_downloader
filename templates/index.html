@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nyasha's Downloader</title>
+    <style>body{font-family:Segoe UI,Arial;margin:24px}input[type=text]{width:70%}img{max-width:320px}</style>
+  </head>
+  <body>
+    <h1>Nyasha's Downloader</h1>
+    {% if error %}
+      <p style="color:darkred">{{ error }}</p>
+    {% endif %}
+    <form action="/info" method="post">
+      <input type="text" name="url" placeholder="Paste video URL here" required />
+      <button type="submit">Get Info</button>
+    </form>
+    <p>Powered by <strong>yt-dlp</strong> (server-side).</p>
+  </body>
+</html>

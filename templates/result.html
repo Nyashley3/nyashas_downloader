@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }} - Nyasha's Downloader</title>
+    <style>body{font-family:Segoe UI,Arial;margin:24px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px;text-align:left}img{max-width:320px}</style>
+  </head>
+  <body>
+    <h1>{{ title }}</h1>
+    {% if thumbnail %}
+      <img src="{{ thumbnail }}" alt="thumbnail" />
+    {% endif %}
+
+    {% if download_url %}
+      <p>Download ready: <a href="{{ download_url }}">Download file</a></p>
+      {% if expires_at %}
+        <p>Link expires at: {{ expires_at }}</p>
+      {% endif %}
+      <p><a href="/">Back</a></p>
+    {% else %}
+      <h2>Available formats</h2>
+      {% if formats %}
+        <form action="/download" method="post">
+          <input type="hidden" name="url" value="{{ url }}" />
+          <table>
+            <thead><tr><th>Select</th><th>Format ID</th><th>Ext</th><th>Resolution</th><th>FPS</th></tr></thead>
+            <tbody>
+            {% for f in formats %}
+              <tr>
+                <td><input type="radio" name="format_id" value="{{ f.format_id }}" required /></td>
+                <td>{{ f.format_id }}</td>
+                <td>{{ f.ext }}</td>
+                <td>{{ f.resolution or '-' }}</td>
+                <td>{{ f.fps or '-' }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          <p>
+            <label>Output container:
+              <select name="target">
+                <option value="original">Original</option>
+                <option value="mp4">MP4</option>
+                <option value="webm">WebM</option>
+              </select>
+            </label>
+          </p>
+          <p>
+            <label>Link expiry (minutes):
+              <select name="expiry_minutes">
+                <option value="5">5</option>
+                <option value="15" selected>15</option>
+                <option value="30">30</option>
+                <option value="60">60</option>
+              </select>
+            </label>
+          </p>
+          <p>
+            <button type="submit">Download</button>
+          </p>
+        </form>
+      {% else %}
+        <p>No video formats found.</p>
+      {% endif %}
+      <p><a href="/">Back</a></p>
+    {% endif %}
+  </body>
+</html>
