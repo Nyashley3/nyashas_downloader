@@ -1,14 +1,11 @@
 from flask import Flask, render_template, request, send_from_directory, url_for, redirect
 from yt_dlp import YoutubeDL
-from werkzeug.utils import secure_filename
 import os
 import uuid
 import glob
-import random
-import subprocess
 import time
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime
 
 BASE_DIR = os.path.dirname(__file__)
 TMP_DIR = os.path.join(BASE_DIR, 'tmp')
@@ -43,17 +40,7 @@ def cleanup_expired_files(interval_seconds=60):
         time.sleep(interval_seconds)
 
 
-def save_uploaded_cookies(request_obj):
-    cookies_file = request_obj.files.get('cookies_file')
-    if not cookies_file or not getattr(cookies_file, 'filename', ''):
-        return None
-    safe_name = secure_filename(cookies_file.filename) or 'cookies.txt'
-    path = os.path.join(TMP_DIR, f"{uuid.uuid4().hex}_{safe_name}")
-    cookies_file.save(path)
-    return path
-
-
-def build_yt_dlp_options(cookies_path=None, skip_download=False):
+def build_yt_dlp_options(skip_download=False):
     headers = {
         'User-Agent': os.environ.get('YTDLP_USER_AGENT') or 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'Accept-Language': 'en-US,en;q=0.9',
@@ -70,8 +57,6 @@ def build_yt_dlp_options(cookies_path=None, skip_download=False):
     }
     if skip_download:
         options['skip_download'] = True
-    if cookies_path:
-        options['cookiefile'] = cookies_path
     return options
 
 
@@ -79,9 +64,8 @@ def explain_yt_dlp_error(error):
     message = str(error).lower()
     if 'not a bot' in message or 'confirm you’re not a bot' in message or 'captcha' in message or 'sign in to confirm' in message:
         return (
-            'YouTube is blocking this request from the server. '
-            'If you have a browser cookies file, upload it here to try again. '
-            'Otherwise, try a different video source or wait a bit and try again.'
+            'This video source is currently blocking automated access. '
+            'Please try a different supported link or try again later.'
         )
     return str(error)
 
@@ -104,17 +88,12 @@ def info():
     if not url:
         return render_template('index.html', error='Please provide a video URL')
 
-    cookies_path = None
     try:
-        cookies_path = save_uploaded_cookies(request)
-        ydl_opts = build_yt_dlp_options(cookies_path=cookies_path, skip_download=True)
+        ydl_opts = build_yt_dlp_options(skip_download=True)
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
     except Exception as e:
         return render_template('index.html', error=explain_yt_dlp_error(e))
-    finally:
-        if cookies_path and os.path.exists(cookies_path):
-            os.remove(cookies_path)
 
     # handle playlists by taking the first entry
     if isinstance(info, dict) and 'entries' in info and info['entries']:
@@ -179,19 +158,11 @@ def download():
         'noplaylist': True,
     }
 
-    cookies_path = None
     try:
-        cookies_path = save_uploaded_cookies(request)
-        ydl_opts = dict(ydl_opts)
-        if cookies_path:
-            ydl_opts['cookiefile'] = cookies_path
         with YoutubeDL(ydl_opts) as ydl:
             ydl.extract_info(url, download=True)
     except Exception as e:
         return render_template('index.html', error=f'Download failed: {explain_yt_dlp_error(e)}')
-    finally:
-        if cookies_path and os.path.exists(cookies_path):
-            os.remove(cookies_path)
 
     matches = glob.glob(os.path.join(TMP_DIR, unique + '.*'))
     if not matches:

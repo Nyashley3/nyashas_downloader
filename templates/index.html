@@ -67,6 +67,11 @@
         color: var(--muted);
         font-size: 1rem;
       }
+      .brand .subtext {
+        margin-top: 8px;
+        font-size: 0.95rem;
+        color: #475569;
+      }
       .alert {
         border-radius: 14px;
         padding: 12px 14px;
@@ -115,18 +120,6 @@
         font-weight: 600;
         letter-spacing: 0.02em;
       }
-      .helper {
-        color: var(--muted);
-        font-size: 0.9rem;
-        margin-top: 6px;
-      }
-      input[type="file"] {
-        width: 100%;
-        border: 1px dashed var(--border);
-        border-radius: 12px;
-        padding: 10px;
-        background: white;
-      }
       .footer {
         margin-top: 18px;
         text-align: center;
@@ -146,19 +139,18 @@
       <div class="brand">
         <h1>Nyasha's Downloader</h1>
         <p>Paste a link, pick a format, and download with style.</p>
+        <p class="subtext">Simple, clean, and ready for supported media links.</p>
       </div>
       {% if error %}
         <div class="alert">{{ error }}</div>
       {% endif %}
-      <form action="/info" method="post" enctype="multipart/form-data">
+      <form action="/info" method="post">
         <div class="input-row">
           <input type="text" name="url" placeholder="Paste video URL here" required />
           <button type="submit">Get Info</button>
         </div>
-        <div class="helper">Optional: upload a browser cookies file if YouTube blocks the request.</div>
-        <input type="file" name="cookies_file" accept=".txt,.cookies" />
       </form>
-      <div class="footer">Powered by <strong>yt-dlp</strong> (server-side).</div>
+      <div class="footer">Works best with supported public media links.</div>
       <div class="accent-line">Inspired by my mom</div>
     </div>
   </body>

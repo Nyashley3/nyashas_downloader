@@ -124,7 +124,7 @@
     <div class="shell">
       <div class="hero">
         <h1>{{ title }}</h1>
-        <p>Choose a format, set an expiry, and download your file in a polished flow.</p>
+        <p>Choose a quality, set the link expiry, and download your file.</p>
       </div>
       {% if thumbnail %}
         <img class="thumb" src="{{ thumbnail }}" alt="thumbnail" />
@@ -146,7 +146,7 @@
         <div class="panel">
           <h2>Popular formats</h2>
           {% if formats %}
-            <form action="/download" method="post" enctype="multipart/form-data">
+            <form action="/download" method="post">
               <input type="hidden" name="url" value="{{ url }}" />
               <table>
                 <thead><tr><th>Select</th><th>Quality</th><th>Size</th></tr></thead>
@@ -177,10 +177,6 @@
                     <option value="60">60</option>
                   </select>
                 </label>
-              </div>
-              <div class="panel" style="margin-top: 14px;">
-                <div class="meta">Optional cookies file for YouTube</div>
-                <input type="file" name="cookies_file" accept=".txt,.cookies" style="width:100%;margin-top:8px;" />
               </div>
               <div class="btn-row">
                 <button type="submit">Download</button>
