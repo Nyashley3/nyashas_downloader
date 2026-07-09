@@ -144,20 +144,18 @@
         </div>
       {% else %}
         <div class="panel">
-          <h2>Available formats</h2>
+          <h2>Popular formats</h2>
           {% if formats %}
             <form action="/download" method="post">
               <input type="hidden" name="url" value="{{ url }}" />
               <table>
-                <thead><tr><th>Select</th><th>Format ID</th><th>Ext</th><th>Resolution</th><th>FPS</th></tr></thead>
+                <thead><tr><th>Select</th><th>Quality</th><th>Size</th></tr></thead>
                 <tbody>
                 {% for f in formats %}
                   <tr>
-                    <td><input type="radio" name="format_id" value="{{ f.format_id }}" required /></td>
-                    <td>{{ f.format_id }}</td>
-                    <td>{{ f.ext }}</td>
+                    <td><input type="radio" name="quality" value="{{ f.height }}" required /></td>
                     <td>{{ f.resolution or '-' }}</td>
-                    <td>{{ f.fps or '-' }}</td>
+                    <td>{{ f.size or '-' }}</td>
                   </tr>
                 {% endfor %}
                 </tbody>
@@ -166,7 +164,6 @@
                 <label style="flex:1;min-width:220px;">
                   <div class="meta">Output container</div>
                   <select name="target">
-                    <option value="original">Original</option>
                     <option value="mp4">MP4</option>
                     <option value="webm">WebM</option>
                   </select>

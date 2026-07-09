@@ -117,8 +117,7 @@ def download():
 
     quality_height = int(quality)
     container = target if target in ('mp4', 'webm') else 'mp4'
-    audio_ext = 'm4a' if container == 'mp4' else 'webm'
-    format_selector = f"bestvideo[height<={quality_height}][ext={container}]+bestaudio[ext={audio_ext}]/best[height<={quality_height}][ext={container}]"
+    format_selector = f"best[height<={quality_height}][ext={container}]/best[height<={quality_height}]/best"
 
     unique = uuid.uuid4().hex
     outtmpl = os.path.join(TMP_DIR, unique + '.%(ext)s')
@@ -128,7 +127,6 @@ def download():
         'quiet': True,
         'no_warnings': True,
         'noplaylist': True,
-        'merge_output_format': container,
     }
 
     try:
