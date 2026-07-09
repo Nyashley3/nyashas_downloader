@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 import os
 import uuid
 import glob
+import random
 import subprocess
 import time
 import threading
@@ -53,7 +54,20 @@ def save_uploaded_cookies(request_obj):
 
 
 def build_yt_dlp_options(cookies_path=None, skip_download=False):
-    options = {'quiet': True, 'no_warnings': True, 'nplaylist': True}
+    headers = {
+        'User-Agent': os.environ.get('YTDLP_USER_AGENT') or 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Referer': 'https://www.youtube.com/'
+    }
+    options = {
+        'quiet': True,
+        'no_warnings': True,
+        'nplaylist': True,
+        'http_headers': headers,
+        'extractor_retries': 3,
+        'sleep_interval_requests': 2,
+    }
     if skip_download:
         options['skip_download'] = True
     if cookies_path:
