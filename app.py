@@ -173,4 +173,10 @@ def serve_file(filename):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5001)
+    host = os.environ.get('HOST', '0.0.0.0')
+    port = int(os.environ.get('PORT', '5001'))
+    try:
+        from waitress import serve
+        serve(app, host=host, port=port, threads=8)
+    except Exception:
+        app.run(debug=False, host=host, port=port)
