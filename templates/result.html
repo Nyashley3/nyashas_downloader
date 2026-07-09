@@ -4,66 +4,195 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ title }} - Nyasha's Downloader</title>
-    <style>body{font-family:Segoe UI,Arial;margin:24px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px;text-align:left}img{max-width:320px}</style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #f4f9ff;
+        --card: rgba(255,255,255,0.95);
+        --text: #0f172a;
+        --muted: #4b5563;
+        --primary: #2563eb;
+        --primary-2: #3b82f6;
+        --accent: #38bdf8;
+        --border: rgba(37, 99, 235, 0.16);
+        --shadow: 0 20px 45px rgba(37, 99, 235, 0.16);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Inter', Segoe UI, Arial, sans-serif;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #f8fbff 100%);
+        color: var(--text);
+        padding: 24px;
+      }
+      .shell {
+        width: min(980px, 100%);
+        margin: 0 auto;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        padding: 32px;
+        position: relative;
+        overflow: hidden;
+      }
+      .shell::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, rgba(37,99,235,0.08), transparent 45%, rgba(56,189,248,0.08));
+        pointer-events: none;
+      }
+      .hero {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .hero h1 {
+        margin: 0 0 8px;
+        font-size: clamp(1.7rem, 3vw, 2.4rem);
+        font-weight: 800;
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .hero p { margin: 0; color: var(--muted); }
+      .thumb {
+        width: min(320px, 100%);
+        border-radius: 20px;
+        display: block;
+        margin: 0 auto 24px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+      }
+      .panel {
+        background: #f8fbff;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px;
+        margin-bottom: 16px;
+      }
+      .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+      a.button, button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 16px;
+        text-decoration: none;
+        color: white;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 60%, var(--accent) 100%);
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.2);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      a.button:hover, button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 28px rgba(37, 99, 235, 0.28);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5eefc; }
+      th { background: #eaf4ff; color: #1d4ed8; }
+      select {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        background: white;
+        color: var(--text);
+        margin-top: 8px;
+      }
+      .meta { color: var(--muted); }
+      @media (max-width: 640px) {
+        body { padding: 12px; }
+        .shell { padding: 20px; border-radius: 20px; }
+        table { display: block; overflow-x: auto; }
+        .btn-row { flex-direction: column; }
+        a.button, button { width: 100%; }
+      }
+    </style>
   </head>
   <body>
-    <h1>{{ title }}</h1>
-    {% if thumbnail %}
-      <img src="{{ thumbnail }}" alt="thumbnail" />
-    {% endif %}
+    <div class="shell">
+      <div class="hero">
+        <h1>{{ title }}</h1>
+        <p>Choose a format, set an expiry, and download your file in a polished flow.</p>
+      </div>
+      {% if thumbnail %}
+        <img class="thumb" src="{{ thumbnail }}" alt="thumbnail" />
+      {% endif %}
 
-    {% if download_url %}
-      <p>Download ready: <a href="{{ download_url }}">Download file</a></p>
-      {% if expires_at %}
-        <p>Link expires at: {{ expires_at }}</p>
-      {% endif %}
-      <p><a href="/">Back</a></p>
-    {% else %}
-      <h2>Available formats</h2>
-      {% if formats %}
-        <form action="/download" method="post">
-          <input type="hidden" name="url" value="{{ url }}" />
-          <table>
-            <thead><tr><th>Select</th><th>Format ID</th><th>Ext</th><th>Resolution</th><th>FPS</th></tr></thead>
-            <tbody>
-            {% for f in formats %}
-              <tr>
-                <td><input type="radio" name="format_id" value="{{ f.format_id }}" required /></td>
-                <td>{{ f.format_id }}</td>
-                <td>{{ f.ext }}</td>
-                <td>{{ f.resolution or '-' }}</td>
-                <td>{{ f.fps or '-' }}</td>
-              </tr>
-            {% endfor %}
-            </tbody>
-          </table>
-          <p>
-            <label>Output container:
-              <select name="target">
-                <option value="original">Original</option>
-                <option value="mp4">MP4</option>
-                <option value="webm">WebM</option>
-              </select>
-            </label>
-          </p>
-          <p>
-            <label>Link expiry (minutes):
-              <select name="expiry_minutes">
-                <option value="5">5</option>
-                <option value="15" selected>15</option>
-                <option value="30">30</option>
-                <option value="60">60</option>
-              </select>
-            </label>
-          </p>
-          <p>
-            <button type="submit">Download</button>
-          </p>
-        </form>
+      {% if download_url %}
+        <div class="panel">
+          <p><strong>Download ready</strong></p>
+          <p class="meta">Your file is ready to download.</p>
+          <div class="btn-row">
+            <a class="button" href="{{ download_url }}">Download file</a>
+            <a class="button" href="/">Back</a>
+          </div>
+          {% if expires_at %}
+            <p class="meta">Link expires at: {{ expires_at }}</p>
+          {% endif %}
+        </div>
       {% else %}
-        <p>No video formats found.</p>
+        <div class="panel">
+          <h2>Available formats</h2>
+          {% if formats %}
+            <form action="/download" method="post">
+              <input type="hidden" name="url" value="{{ url }}" />
+              <table>
+                <thead><tr><th>Select</th><th>Format ID</th><th>Ext</th><th>Resolution</th><th>FPS</th></tr></thead>
+                <tbody>
+                {% for f in formats %}
+                  <tr>
+                    <td><input type="radio" name="format_id" value="{{ f.format_id }}" required /></td>
+                    <td>{{ f.format_id }}</td>
+                    <td>{{ f.ext }}</td>
+                    <td>{{ f.resolution or '-' }}</td>
+                    <td>{{ f.fps or '-' }}</td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+              <div class="btn-row">
+                <label style="flex:1;min-width:220px;">
+                  <div class="meta">Output container</div>
+                  <select name="target">
+                    <option value="original">Original</option>
+                    <option value="mp4">MP4</option>
+                    <option value="webm">WebM</option>
+                  </select>
+                </label>
+                <label style="flex:1;min-width:220px;">
+                  <div class="meta">Link expiry (minutes)</div>
+                  <select name="expiry_minutes">
+                    <option value="5">5</option>
+                    <option value="15" selected>15</option>
+                    <option value="30">30</option>
+                    <option value="60">60</option>
+                  </select>
+                </label>
+              </div>
+              <div class="btn-row">
+                <button type="submit">Download</button>
+                <a class="button" href="/">Back</a>
+              </div>
+            </form>
+          {% else %}
+            <p>No video formats found.</p>
+            <div class="btn-row"><a class="button" href="/">Back</a></div>
+          {% endif %}
+        </div>
       {% endif %}
-      <p><a href="/">Back</a></p>
-    {% endif %}
+      <div style="text-align:center;margin-top:16px;color:#2563eb;font-weight:600;">Inspired by my mom</div>
+    </div>
   </body>
 </html>

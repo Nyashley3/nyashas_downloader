@@ -16,6 +16,14 @@ os.makedirs(TMP_DIR, exist_ok=True)
 DOWNLOADS = {}
 
 
+def format_size(size_bytes):
+    if not size_bytes:
+        return "—"
+    if size_bytes >= 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+    return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
 def cleanup_expired_files(interval_seconds=60):
     while True:
         now = time.time()
@@ -66,31 +74,34 @@ def info():
     thumbnail = info.get('thumbnail')
     formats = info.get('formats', []) or []
 
-    # collect video formats with resolution information
     formats_filtered = []
     for f in formats:
-        # include video tracks (skip audio-only)
-        if f.get('vcodec') == 'none' and f.get('acodec') != 'none':
-            # skip audio-only formats for this prototype
+        if f.get('vcodec') == 'none':
             continue
-        resolution = f.get('resolution') or (str(f.get('height')) + 'p' if f.get('height') else None)
+        if not f.get('height'):
+            continue
+        resolution = f.get('resolution') or f"{f.get('height')}p"
+        size_bytes = f.get('filesize') or f.get('filesize_approx')
         formats_filtered.append({
             'format_id': f.get('format_id'),
             'ext': f.get('ext'),
             'resolution': resolution,
-            'fps': f.get('fps'),
+            'height': f.get('height'),
+            'size': format_size(size_bytes),
+            'size_bytes': size_bytes,
         })
 
-    # dedupe by (resolution, ext), prefer higher fps when available
-    seen = set()
-    formats_sorted = sorted(formats_filtered, key=lambda x: ((x['resolution'] or ''), (x['ext'] or ''), x['fps'] or 0), reverse=True)
+    # keep the most common quality tiers only (up to 5)
+    formats_sorted = sorted(formats_filtered, key=lambda x: x['height'], reverse=True)
+    seen_heights = set()
     final_formats = []
     for f in formats_sorted:
-        key = (f['resolution'], f['ext'])
-        if key in seen:
+        if f['height'] in seen_heights:
             continue
-        seen.add(key)
+        seen_heights.add(f['height'])
         final_formats.append(f)
+        if len(final_formats) >= 5:
+            break
 
     return render_template('result.html', title=title, thumbnail=thumbnail, formats=final_formats, url=url)
 
@@ -98,15 +109,27 @@ def info():
 @app.route('/download', methods=['POST'])
 def download():
     url = request.form.get('url')
-    format_id = request.form.get('format_id')
-    target = request.form.get('target') or 'original'  # original, mp4, webm
+    quality = request.form.get('quality')
+    target = request.form.get('target') or 'mp4'
     expiry_minutes = int(request.form.get('expiry_minutes') or 15)
-    if not url or not format_id:
+    if not url or not quality:
         return redirect(url_for('index'))
+
+    quality_height = int(quality)
+    container = target if target in ('mp4', 'webm') else 'mp4'
+    audio_ext = 'm4a' if container == 'mp4' else 'webm'
+    format_selector = f"bestvideo[height<={quality_height}][ext={container}]+bestaudio[ext={audio_ext}]/best[height<={quality_height}][ext={container}]"
 
     unique = uuid.uuid4().hex
     outtmpl = os.path.join(TMP_DIR, unique + '.%(ext)s')
-    ydl_opts = {'format': format_id, 'outtmpl': outtmpl, 'quiet': True, 'no_warnings': True}
+    ydl_opts = {
+        'format': format_selector,
+        'outtmpl': outtmpl,
+        'quiet': True,
+        'no_warnings': True,
+        'noplaylist': True,
+        'merge_output_format': container,
+    }
 
     try:
         with YoutubeDL(ydl_opts) as ydl:
@@ -114,28 +137,14 @@ def download():
     except Exception as e:
         return render_template('index.html', error=f'Download failed: {e}')
 
-    # find the downloaded file (first match)
     matches = glob.glob(os.path.join(TMP_DIR, unique + '.*'))
     if not matches:
         return render_template('index.html', error='Downloaded file not found')
 
     downloaded = matches[0]
-    orig_ext = os.path.splitext(downloaded)[1].lstrip('.')
-
     final_path = downloaded
-    if target != 'original' and target != orig_ext:
-        # re-encode using ffmpeg
-        target_path = os.path.join(TMP_DIR, unique + '.' + target)
-        cmd = ['ffmpeg', '-y', '-i', downloaded, '-c:v', 'libx264' if target == 'mp4' else 'libvpx-vp9', '-c:a', 'aac' if target == 'mp4' else 'libvorbis', target_path]
-        try:
-            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            final_path = target_path
-        except subprocess.CalledProcessError as e:
-            return render_template('index.html', error=f'FFmpeg failed: {e.stderr.decode(errors="ignore")}')
-
     filename = os.path.basename(final_path)
 
-    # register download with expiry
     expires_at = time.time() + (expiry_minutes * 60)
     DOWNLOADS[filename] = {'path': final_path, 'expires_at': expires_at}
 
