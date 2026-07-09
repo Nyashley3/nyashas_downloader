@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, send_from_directory, url_for, redirect
 from yt_dlp import YoutubeDL
+from werkzeug.utils import secure_filename
 import os
 import uuid
 import glob
@@ -41,6 +42,36 @@ def cleanup_expired_files(interval_seconds=60):
         time.sleep(interval_seconds)
 
 
+def save_uploaded_cookies(request_obj):
+    cookies_file = request_obj.files.get('cookies_file')
+    if not cookies_file or not getattr(cookies_file, 'filename', ''):
+        return None
+    safe_name = secure_filename(cookies_file.filename) or 'cookies.txt'
+    path = os.path.join(TMP_DIR, f"{uuid.uuid4().hex}_{safe_name}")
+    cookies_file.save(path)
+    return path
+
+
+def build_yt_dlp_options(cookies_path=None, skip_download=False):
+    options = {'quiet': True, 'no_warnings': True, 'nplaylist': True}
+    if skip_download:
+        options['skip_download'] = True
+    if cookies_path:
+        options['cookiefile'] = cookies_path
+    return options
+
+
+def explain_yt_dlp_error(error):
+    message = str(error).lower()
+    if 'not a bot' in message or 'confirm you’re not a bot' in message or 'captcha' in message or 'sign in to confirm' in message:
+        return (
+            'YouTube is blocking this request from the server. '
+            'If you have a browser cookies file, upload it here to try again. '
+            'Otherwise, try a different video source or wait a bit and try again.'
+        )
+    return str(error)
+
+
 # start cleanup thread
 cleanup_thread = threading.Thread(target=cleanup_expired_files, daemon=True)
 cleanup_thread.start()
@@ -59,12 +90,17 @@ def info():
     if not url:
         return render_template('index.html', error='Please provide a video URL')
 
-    ydl_opts = {'skip_download': True, 'quiet': True, 'no_warnings': True}
+    cookies_path = None
     try:
+        cookies_path = save_uploaded_cookies(request)
+        ydl_opts = build_yt_dlp_options(cookies_path=cookies_path, skip_download=True)
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
     except Exception as e:
-        return render_template('index.html', error=str(e))
+        return render_template('index.html', error=explain_yt_dlp_error(e))
+    finally:
+        if cookies_path and os.path.exists(cookies_path):
+            os.remove(cookies_path)
 
     # handle playlists by taking the first entry
     if isinstance(info, dict) and 'entries' in info and info['entries']:
@@ -129,11 +165,19 @@ def download():
         'noplaylist': True,
     }
 
+    cookies_path = None
     try:
+        cookies_path = save_uploaded_cookies(request)
+        ydl_opts = dict(ydl_opts)
+        if cookies_path:
+            ydl_opts['cookiefile'] = cookies_path
         with YoutubeDL(ydl_opts) as ydl:
             ydl.extract_info(url, download=True)
     except Exception as e:
-        return render_template('index.html', error=f'Download failed: {e}')
+        return render_template('index.html', error=f'Download failed: {explain_yt_dlp_error(e)}')
+    finally:
+        if cookies_path and os.path.exists(cookies_path):
+            os.remove(cookies_path)
 
     matches = glob.glob(os.path.join(TMP_DIR, unique + '.*'))
     if not matches:

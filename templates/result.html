@@ -146,7 +146,7 @@
         <div class="panel">
           <h2>Popular formats</h2>
           {% if formats %}
-            <form action="/download" method="post">
+            <form action="/download" method="post" enctype="multipart/form-data">
               <input type="hidden" name="url" value="{{ url }}" />
               <table>
                 <thead><tr><th>Select</th><th>Quality</th><th>Size</th></tr></thead>
@@ -177,6 +177,10 @@
                     <option value="60">60</option>
                   </select>
                 </label>
+              </div>
+              <div class="panel" style="margin-top: 14px;">
+                <div class="meta">Optional cookies file for YouTube</div>
+                <input type="file" name="cookies_file" accept=".txt,.cookies" style="width:100%;margin-top:8px;" />
               </div>
               <div class="btn-row">
                 <button type="submit">Download</button>
