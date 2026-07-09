@@ -1,0 +1,10 @@
+@echo off
+setlocal
+pushd "%~dp0"
+if exist ".\.venv\Scripts\Activate.ps1" (
+  powershell -NoExit -Command "Set-Location -LiteralPath '%~dp0'; . .\.venv\Scripts\Activate.ps1; python .\app.py"
+) else (
+  powershell -NoExit -Command "Set-Location -LiteralPath '%~dp0'; python .\app.py"
+)
+popd
+start "" http://127.0.0.1:5001
